@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -332,6 +332,7 @@
         <input 
           type="text" 
           id="calcInput" 
+          inputmode="none"
           class="calc-input font-mono text-xl sm:text-3xl font-bold text-slate-900 dark:text-white placeholder:text-slate-400/50 dark:placeholder:text-slate-500/50"
           value="" 
           placeholder="0"
@@ -481,7 +482,7 @@
       <!-- Input Value Block -->
       <div class="bg-slate-100/80 dark:bg-slate-800/60 p-3 rounded-2xl border border-slate-200 dark:border-white/5">
         <label class="block text-[11px] font-semibold text-slate-400 mb-1">From</label>
-        <input type="number" id="convertFromInput" oninput="runConversion()" value="1" class="w-full bg-transparent font-mono text-lg font-bold text-slate-800 dark:text-white outline-none mb-2" />
+        <input type="number" id="convertFromInput" inputmode="none" oninput="runConversion()" value="1" class="w-full bg-transparent font-mono text-lg font-bold text-slate-800 dark:text-white outline-none mb-2" />
         <select id="convertFromUnit" onchange="runConversion()" class="w-full bg-slate-200 dark:bg-slate-700/80 text-xs font-medium rounded-lg p-2 text-slate-800 dark:text-slate-200 border-none outline-none">
           <!-- Populated dynamically -->
         </select>
@@ -677,16 +678,35 @@
       lucide.createIcons();
     }
 
-    /* Persistent Light / Dark Theme */
+    /* Persistent Light / Dark Theme Synced with User's Device */
     function initTheme() {
-      const savedTheme = localStorage.getItem('aura_theme') || 'dark';
-      if (savedTheme === 'light') {
-        document.documentElement.classList.remove('dark');
-        document.getElementById('themeIcon').setAttribute('data-lucide', 'sun');
-      } else {
+      const savedTheme = localStorage.getItem('aura_theme');
+      const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      
+      const isDark = savedTheme ? (savedTheme === 'dark') : systemPrefersDark;
+
+      if (isDark) {
         document.documentElement.classList.add('dark');
         document.getElementById('themeIcon').setAttribute('data-lucide', 'moon');
+      } else {
+        document.documentElement.classList.remove('dark');
+        document.getElementById('themeIcon').setAttribute('data-lucide', 'sun');
       }
+
+      // Automatically sync if system theme changes and user hasn't explicitly set a preference
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+        if (!localStorage.getItem('aura_theme')) {
+          if (e.matches) {
+            document.documentElement.classList.add('dark');
+            document.getElementById('themeIcon').setAttribute('data-lucide', 'moon');
+          } else {
+            document.documentElement.classList.remove('dark');
+            document.getElementById('themeIcon').setAttribute('data-lucide', 'sun');
+          }
+          lucide.createIcons();
+        }
+      });
+
       lucide.createIcons();
     }
 
@@ -766,7 +786,7 @@
 
       const isOp = (c) => ['+', '-', '*', '/', '×', '÷', '%'].includes(c);
 
-      // Agar new input ek operator hai aur पिछला character bhi operator tha, toh operator replace kar do
+      // Agar new input ek operator hai aur pichhla character bhi operator tha, toh operator replace kar do
       if (isOp(val) && start > 0) {
         const prevChar = text.charAt(start - 1);
         if (isOp(prevChar)) {
@@ -860,7 +880,7 @@
       calcInput.addEventListener('input', () => {
         let val = calcInput.value;
         
-        // Ek saath continuous multiple operators (jaise +++-+++-) ko single latest operator me convert kar do
+        // Ek saath continuous multiple operators ko single latest operator me convert kar do
         val = val.replace(/([+\-*\/×÷%]{2,})/g, (match) => match.slice(-1));
 
         calcInput.value = cleanLeadingZeros(val);
